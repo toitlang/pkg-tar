@@ -27,7 +27,7 @@ class Tar:
   /**
   Closes the tar stream, and invokes `close_write` on the stored writer if $close_writer is true.
   */
-  close --close_writer /bool = true:
+  close --close_writer/bool=true:
     // TODO(florian): feels heavy to allocate a new array just to write a bunch of zeros.
     zero_header := ByteArray 512
     writer_.write zero_header
