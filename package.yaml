@@ -1,1 +1,2 @@
-# Toit Package File.
+name: tar
+description: Toit package to manipulate tar files.
