@@ -34,7 +34,8 @@ class Tar:
     add_ file_name content --type=normal_
 
   /**
-  Closes the tar stream, and invokes 'close' if $close_writer is true.
+  Closes the tar stream, and invokes 'close' on the writer if $close_writer is
+    true (the default).
   */
   close --close_writer/bool=true:
     // TODO(florian): feels heavy to allocate a new array just to write a bunch of zeros.
