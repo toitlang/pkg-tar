@@ -6,7 +6,9 @@ import expect show *
 import tar show *
 import host.pipe
 import host.file
+import io
 import monitor
+import system show platform PLATFORM-FREERTOS PLATFORM-MACOS
 
 run_tar command flags [generator]:
   pipes := pipe.fork
@@ -19,23 +21,20 @@ run_tar command flags [generator]:
         "tar", command, flags,
       ]
 
-  to := pipes[0]
-  from := pipes[1]
+  to/pipe.OpenPipe := pipes[0]
+  from/pipe.OpenPipe := pipes[1]
   pid := pipes[3]
   pipe.dont_wait_for pid
 
   // Process STDOUT in subprocess, so we don't block the tar process.
   latch := monitor.Latch
   task::
-    result := ""
-    while byte_array := from.read:
-      result += byte_array.to_string  // Relies on us not having Unicode boundaries.
+    reader := from.in
+    reader.buffer-all
+    result := reader.read-string reader.buffered-size
     latch.set result
 
-  generator.call to
-  // TODO(florian): it would be nicer if the generator closed the `to`.
-  // However, we currently have difficulties knowing whether to call `close` or `close_write`.
-  to.close
+  generator.call to.out
 
   return latch.get
 
@@ -80,19 +79,19 @@ list_with_tar_bin [generator] -> List/*<TarEntry>*/:
     // A line looks something like:
     // Linux: -rw-rw-r-- 0/0               5 1970-01-01 01:00 /foo
     // Mac:   -rw-rw-r--  0 0      0           5 Jan  1  1970 /foo
-    name_index := platform == "macOS" ? 8 : 5
-    size_index := platform == "macOS" ? 4 : 2
+    name_index := platform == PLATFORM-MACOS ? 8 : 5
+    size_index := platform == PLATFORM-MACOS ? 4 : 2
     components := split_fields line
     file_name := components[name_index]
     size := int.parse components[size_index]
     TarEntry file_name size
 
 test_tar contents:
-  create_tar := : |writer|
+  create_tar := : |writer/io.Writer|
     tar := Tar writer
     contents.do: |file_name file_contents|
       tar.add file_name file_contents
-    tar.close --no-close_writer
+    tar.close
 
   listing := list_with_tar_bin create_tar
   expect_equals contents.size listing.size
@@ -114,7 +113,7 @@ create_huge_contents -> string:
 
 main:
   // FreeRTOS doesn't have `tar`.
-  if platform == "FreeRTOS": return
+  if platform == PLATFORM-FREERTOS: return
 
   test_tar {
     "/foo": "12345",

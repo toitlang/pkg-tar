@@ -2,7 +2,7 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the package's LICENSE file.
 
-import writer show Writer
+import io
 
 /**
 A tar archiver.
@@ -12,8 +12,17 @@ Writes the given files into the writer in tar file format.
 class Tar:
   writer_ ::= ?
 
+  /**
+  Creates a new Tar archiver that writes to the given $writer.
+
+  The $writer should be an $io.Writer, but for compatibility reasons, it can also be an
+    "old-style" writer. The old-style writer is deprecated and will be removed in the future.
+  */
   constructor writer:
-    writer_ = Writer writer
+    if writer is io.Writer:
+      writer_ = writer
+    else:
+      writer_ = io.Writer.adapt writer
 
   /**
   Adds a new "file" to the generated tar-archive.
@@ -21,18 +30,19 @@ class Tar:
   This function sets all file attributes to some default values. For example, the
     modification date is set to 0 (epoch time).
   */
-  add file_name/string content -> none:
+  add file_name/string content/io.Data -> none:
     add_ file_name content --type=normal_
 
   /**
-  Closes the tar stream, and invokes `close_write` on the stored writer if $close_writer is true.
+  Closes the tar stream, and invokes 'close' on the writer if $close_writer is
+    true (the default).
   */
   close --close_writer/bool=true:
     // TODO(florian): feels heavy to allocate a new array just to write a bunch of zeros.
     zero_header := ByteArray 512
     writer_.write zero_header
     writer_.write zero_header
-    if close_writer: writer_.close_write
+    if close_writer: writer_.close
 
   /**
   Adds the given $file_name with its $content to the tar stream.
@@ -41,13 +51,13 @@ class Tar:
     header, and the "LongLink" technique stores the filename as file content.
   The $type parameter must be one of the constants below: $normal_ or $long_link_.
   */
-  add_ file_name/string content --type/int -> none:
+  add_ file_name/string content/io.Data --type/int -> none:
     if file_name.size > 100:
       // The file-name is encoded a separate "file".
       add_ "././@LongLink" file_name --type=long_link_
       file_name = file_name.copy 0 100
 
-    file_size := content.size
+    file_size := content.byte-size
     file_size_in_octal := file_size.stringify 8
 
     header := ByteArray 512
