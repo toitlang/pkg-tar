@@ -10,12 +10,12 @@ import io
 import monitor
 import system show platform PLATFORM-FREERTOS PLATFORM-MACOS
 
-run_tar command flags [generator]:
+run-tar command flags [generator]:
   pipes := pipe.fork
       true
-      pipe.PIPE_CREATED
-      pipe.PIPE_CREATED
-      pipe.PIPE_INHERITED
+      pipe.PIPE-CREATED
+      pipe.PIPE-CREATED
+      pipe.PIPE-INHERITED
       "tar"
       [
         "tar", command, flags,
@@ -24,7 +24,7 @@ run_tar command flags [generator]:
   to/pipe.OpenPipe := pipes[0]
   from/pipe.OpenPipe := pipes[1]
   pid := pipes[3]
-  pipe.dont_wait_for pid
+  pipe.dont-wait-for pid
 
   // Process STDOUT in subprocess, so we don't block the tar process.
   latch := monitor.Latch
@@ -38,8 +38,8 @@ run_tar command flags [generator]:
 
   return latch.get
 
-inspect_with_tar_bin [generator]:
-  return run_tar
+inspect-with-tar-bin [generator]:
+  return run-tar
       "t"   // list
       "-Pv" // P for absolute paths, verbose
       generator
@@ -48,22 +48,22 @@ inspect_with_tar_bin [generator]:
 ///
 /// Returns the concatenated contents of all extracted files.
 extract [generator]:
-  return run_tar
+  return run-tar
       "x"   // extract
       "-PO" // P for absolute paths, to stdout
       generator
 
-split_fields line/string -> List/*<string>*/:
+split-fields line/string -> List/*<string>*/:
   result := []
-  start_pos := 0
-  last_was_space := true
+  start-pos := 0
+  last-was-space := true
   for i := 0; i <= line.size; i++:
     c := i == line.size ? ' ' : line[i]
-    if c == ' ' and not last_was_space:
-      result.add (line.copy start_pos i)
-    if c != ' ' and last_was_space:
-      start_pos = i
-    last_was_space = c == ' '
+    if c == ' ' and not last-was-space:
+      result.add (line.copy start-pos i)
+    if c != ' ' and last-was-space:
+      start-pos = i
+    last-was-space = c == ' '
   return result
 
 class TarEntry:
@@ -72,65 +72,65 @@ class TarEntry:
 
   constructor .name .size:
 
-list_with_tar_bin [generator] -> List/*<TarEntry>*/:
-  listing := inspect_with_tar_bin generator
+list-with-tar-bin [generator] -> List/*<TarEntry>*/:
+  listing := inspect-with-tar-bin generator
   lines := (listing.trim --right "\n").split "\n"
   return lines.map: |line|
     // A line looks something like:
     // Linux: -rw-rw-r-- 0/0               5 1970-01-01 01:00 /foo
     // Mac:   -rw-rw-r--  0 0      0           5 Jan  1  1970 /foo
-    name_index := platform == PLATFORM-MACOS ? 8 : 5
-    size_index := platform == PLATFORM-MACOS ? 4 : 2
-    components := split_fields line
-    file_name := components[name_index]
-    size := int.parse components[size_index]
-    TarEntry file_name size
+    name-index := platform == PLATFORM-MACOS ? 8 : 5
+    size-index := platform == PLATFORM-MACOS ? 4 : 2
+    components := split-fields line
+    file-name := components[name-index]
+    size := int.parse components[size-index]
+    TarEntry file-name size
 
-test_tar contents:
-  create_tar := : |writer/io.Writer|
+test-tar contents:
+  create-tar := : |writer/io.Writer|
     tar := Tar writer
-    contents.do: |file_name file_contents|
-      tar.add file_name file_contents
+    contents.do: |file-name file-contents|
+      tar.add file-name file-contents
     tar.close
 
-  listing := list_with_tar_bin create_tar
-  expect_equals contents.size listing.size
+  listing := list-with-tar-bin create-tar
+  expect-equals contents.size listing.size
   listing.do: |entry|
     expect (contents.contains entry.name)
-    expect_equals entry.size contents[entry.name].size
+    expect-equals entry.size contents[entry.name].size
 
-  concatenated_content := extract create_tar
+  concatenated-content := extract create-tar
   expected := ""
   contents.do --values:
     expected += it
-  expect_equals expected concatenated_content
+  expect-equals expected concatenated-content
 
-create_huge_contents -> string:
+create-huge-contents -> string:
   bytes := ByteArray 10000
   for i := 0; i < bytes.size; i++:
     bytes[i] = 'A' + i % 50
-  return bytes.to_string
+  return bytes.to-string
 
 main:
   // FreeRTOS doesn't have `tar`.
   if platform == PLATFORM-FREERTOS: return
 
-  test_tar {
+  test-tar {
     "/foo": "12345",
   }
 
-  test_tar {
+  test-tar {
     "/foo": "12345",
     "bar": "1",
   }
 
-  test_tar {
+  test-tar {
     "/foo": "12345",
     "bar": "",
   }
-  test_tar {
+  test-tar {
     "/foo/bar": "12345",
-    "huge_file": create_huge_contents,
+    "huge_file": create-huge-contents,
     "empty": "",
     "gee": "gee",
   }
