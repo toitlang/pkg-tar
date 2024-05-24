@@ -44,9 +44,11 @@ inspect-with-tar-bin [generator]:
       "-Pv" // P for absolute paths, verbose
       generator
 
-/// Extracts the files in the generated file.
-///
-/// Returns the concatenated contents of all extracted files.
+/**
+Extracts the files in the generated file.
+
+Returns the concatenated contents of all extracted files.
+*/
 extract [generator]:
   return run-tar
       "x"   // extract
@@ -112,9 +114,6 @@ create-huge-contents -> string:
   return bytes.to-string
 
 main:
-  // FreeRTOS doesn't have `tar`.
-  if platform == PLATFORM-FREERTOS: return
-
   test-tar {
     "/foo": "12345",
   }
