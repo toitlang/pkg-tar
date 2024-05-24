@@ -30,8 +30,8 @@ class Tar:
   This function sets all file attributes to some default values. For example, the
     modification date is set to 0 (epoch time).
   */
-  add file-name/string content/io.Data -> none:
-    add_ file-name content
+  add file-name/string content/io.Data --permissions/int=((6 << 6) | (6 << 3) | 6) -> none:
+    add_ file-name content --permissions=permissions
 
   /**
   Closes the tar stream, and invokes 'close' on the writer if $close-writer is
@@ -52,24 +52,27 @@ class Tar:
   The $type parameter must be one of the constants below: $TYPE-NORMAL_ or
     $TYPE-LONG-LINK_.
   */
-  add_ file-name/string content/io.Data --type/int=TYPE-NORMAL_ -> none:
+  add_ file-name/string content/io.Data --type/int=TYPE-NORMAL_ --permissions/int -> none:
     if file-name.size > 100:
       // The file-name is encoded a separate "file".
-      add_ "././@LongLink" file-name --type=TYPE-LONG-LINK_
+      add_ "././@LongLink" file-name --type=TYPE-LONG-LINK_ --permissions=permissions
       file-name = file-name.copy 0 100
 
     file-size := content.byte-size
     file-size-in-octal := file-size.stringify 8
 
+    permissions-in-octal/string := permissions.stringify 8
+    permissions-in-octal = permissions-in-octal.pad --left 7 '0'
+
     header := ByteArray 512
     // See https://en.wikipedia.org/wiki/Tar_(computing)#File_format for the format.
-    header.replace 0 file-name.to-byte-array
-    header.replace 100 "0000664".to-byte-array
-    header.replace 124 file-size-in-octal.to-byte-array
+    header.replace 0 file-name
+    header.replace 100 permissions-in-octal
+    header.replace 124 file-size-in-octal
     // The checksum is computed using spaces. Later it is replaced with the actual values.
-    header.replace 148 "        ".to-byte-array
+    header.replace 148 "        "
     header[156] = type
-    header.replace 257 "ustar  ".to-byte-array
+    header.replace 257 "ustar  "
 
     checksum := 0
     for i := 0; i < 512; i++:

@@ -86,10 +86,11 @@ split-fields line/string -> List/*<string>*/:
   return result
 
 class TarEntry:
-  name / string ::= ?
-  size / int ::= -1
+  name/string
+  size/int
+  permissions/string
 
-  constructor .name .size:
+  constructor --.name --.size --.permissions:
 
 list-with-tar-bin [generator] -> List/*<TarEntry>*/:
   listing := inspect-with-tar-bin generator
@@ -98,10 +99,11 @@ list-with-tar-bin [generator] -> List/*<TarEntry>*/:
     // A line looks something like:
     // Linux: -rw-rw-r-- 0/0               5 1970-01-01 01:00 /foo
     // Mac:   -rw-rw-r--  0 0      0           5 Jan  1  1970 /foo
+    permissions-index := 0
     name-index := system.platform == system.PLATFORM-MACOS ? 8 : 5
     size-index := system.platform == system.PLATFORM-MACOS ? 4 : 2
     components := split-fields line
     file-name := components[name-index]
     size := int.parse components[size-index]
-    TarEntry file-name size
-
+    permissions := components[permissions-index]
+    TarEntry --name=file-name --size=size --permissions=permissions
