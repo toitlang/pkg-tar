@@ -31,7 +31,7 @@ class Tar:
     modification date is set to 0 (epoch time).
   */
   add file-name/string content/io.Data -> none:
-    add_ file-name content --type=normal_
+    add_ file-name content
 
   /**
   Closes the tar stream, and invokes 'close' on the writer if $close-writer is
@@ -49,12 +49,13 @@ class Tar:
 
   The additional $type parameter is used when filenames don't fit in the standard
     header, and the "LongLink" technique stores the filename as file content.
-  The $type parameter must be one of the constants below: $normal_ or $long-link_.
+  The $type parameter must be one of the constants below: $TYPE-NORMAL_ or
+    $TYPE-LONG-LINK_.
   */
-  add_ file-name/string content/io.Data --type/int -> none:
+  add_ file-name/string content/io.Data --type/int=TYPE-NORMAL_ -> none:
     if file-name.size > 100:
       // The file-name is encoded a separate "file".
-      add_ "././@LongLink" file-name --type=long-link_
+      add_ "././@LongLink" file-name --type=TYPE-LONG-LINK_
       file-name = file-name.copy 0 100
 
     file-size := content.byte-size
@@ -95,5 +96,5 @@ class Tar:
         header[i] = '\0'
       writer_.write header 0 missing
 
-  static normal_    ::= '0'
-  static long-link_ ::= 'L'
+  static TYPE-NORMAL_    ::= '0'
+  static TYPE-LONG-LINK_ ::= 'L'
