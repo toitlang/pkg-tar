@@ -10,15 +10,17 @@ import io
 import monitor
 import system show platform PLATFORM-FREERTOS PLATFORM-MACOS
 
+import .utils
+
 run-tar command flags [generator]:
   pipes := pipe.fork
       true
       pipe.PIPE-CREATED
       pipe.PIPE-CREATED
       pipe.PIPE-INHERITED
-      "tar"
+      tar-path
       [
-        "tar", command, flags,
+        tar-path, command, flags,
       ]
 
   to/pipe.OpenPipe := pipes[0]
