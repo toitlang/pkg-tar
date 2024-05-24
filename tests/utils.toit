@@ -107,4 +107,3 @@ list-with-tar-bin [generator] -> List/*<TarEntry>*/:
     size := int.parse components[size-index]
     permissions := components[permissions-index]
     TarEntry --name=file-name --size=size --permissions=permissions
-
