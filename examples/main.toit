@@ -6,7 +6,8 @@ import host.file as file
 import tar show *
 
 main:
-  tar := Tar (file.Stream "/tmp/toit.tar" file.CREAT | file.WRONLY 0x1ff)
+  stream := file.Stream.for-write "/tmp/toit.tar"
+  tar := Tar stream
   tar.add "test2.txt" "456\n"
-  tar.add "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" "123\n"
-  tar.close
+  tar.add "some-bin.exe" #[0x12, 0x34] --permissions=0b111_000_000
+  tar.close --close-writer
