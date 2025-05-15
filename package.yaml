@@ -1,4 +1,4 @@
 name: tar
 description: Toit package to manipulate tar files.
 environment:
-  sdk: ^v2.0.0-alpha.144
+  sdk: ^v2.0.0-alpha.170
