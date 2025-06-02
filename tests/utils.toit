@@ -28,20 +28,16 @@ tar-path -> string:
   return tool-path_ "tar"
 
 run-tar command flags [generator]:
-  pipes := pipe.fork
-      true
-      pipe.PIPE-CREATED
-      pipe.PIPE-CREATED
-      pipe.PIPE-INHERITED
+  process := pipe.fork
+      --use-path
+      --create-stdin
+      --create-stdout
       tar-path
-      [
-        tar-path, command, flags,
-      ]
+      [tar-path, command, flags]
 
-  to/pipe.OpenPipe := pipes[0]
-  from/pipe.OpenPipe := pipes[1]
-  pid := pipes[3]
-  pipe.dont-wait-for pid
+  to := process.stdin
+  from := process.stdout
+  process.wait-ignore
 
   // Process STDOUT in subprocess, so we don't block the tar process.
   latch := monitor.Latch
