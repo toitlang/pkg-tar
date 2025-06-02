@@ -7,7 +7,7 @@ all: test
 
 .PHONY: test
 test:
-	@toit  pkg install --project-root tests;
+	@toit pkg install --project-root tests;
 	@for f in tests/*-test.toit; do \
 		toit $$f; \
 	done
