@@ -10,7 +10,7 @@ A tar archiver.
 Writes the given files into the writer in tar file format.
 */
 class Tar:
-  writer_ ::= ?
+  writer_/io.Writer
 
   /**
   Creates a new Tar archiver that writes to the given $writer.
@@ -42,7 +42,7 @@ class Tar:
     zero-header := ByteArray 512
     writer_.write zero-header
     writer_.write zero-header
-    if close-writer: writer_.close
+    if close-writer: (writer_ as io.CloseableWriter).close
 
   /**
   Adds the given $file-name with its $content to the tar stream.
