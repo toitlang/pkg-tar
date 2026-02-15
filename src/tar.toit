@@ -9,7 +9,7 @@ A tar archiver.
 
 Writes the given files into the writer in tar file format.
 */
-class Tar:
+class TarWriter:
   writer_/io.Writer
 
   /**

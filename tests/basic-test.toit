@@ -9,8 +9,8 @@ import io
 import .utils
 
 test-tar contents:
-  create-tar := : |writer/io.Writer|
-    tar := Tar writer
+  create-tar := : |writer/io.CloseableWriter|
+    tar := TarWriter writer
     contents.do: |file-name file-contents|
       tar.add file-name file-contents
     tar.close
