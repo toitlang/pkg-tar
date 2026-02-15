@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Toitware ApS. All rights reserved.
+// Copyright (C) 2026 Toit contributors.
 // Use of this source code is governed by an MIT-style license that can be
 // found in the package's LICENSE file.
 
@@ -14,15 +14,9 @@ class Tar:
 
   /**
   Creates a new Tar archiver that writes to the given $writer.
-
-  The $writer should be an $io.Writer, but for compatibility reasons, it can also be an
-    "old-style" writer. The old-style writer is deprecated and will be removed in the future.
   */
-  constructor writer:
-    if writer is io.Writer:
-      writer_ = writer
-    else:
-      writer_ = io.Writer.adapt writer
+  constructor writer/io.Writer:
+    writer_ = writer
 
   /**
   Adds a new "file" to the generated tar-archive.
@@ -34,15 +28,13 @@ class Tar:
     add_ file-name content --permissions=permissions
 
   /**
-  Closes the tar stream, and invokes 'close' on the writer if $close-writer is
-    true (the default).
+  Closes the tar stream, but does not close the writer.
   */
-  close --close-writer/bool=true:
+  close:
     // TODO(florian): feels heavy to allocate a new array just to write a bunch of zeros.
     zero-header := ByteArray 512
     writer_.write zero-header
     writer_.write zero-header
-    if close-writer: (writer_ as io.CloseableWriter).close
 
   /**
   Adds the given $file-name with its $content to the tar stream.
