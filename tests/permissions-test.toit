@@ -32,4 +32,5 @@ main:
 
   expect-equals TESTS.size listing.size
   listing.do: | entry/TarEntry |
-    expect-equals entry.permissions (entry.name.trim --left "file-")
+    expected-string := entry.name.trim --left "file-"
+    expect-equals TESTS[expected-string] entry.permissions
