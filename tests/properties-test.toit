@@ -33,7 +33,7 @@ main:
 
 test-properties:
   writer := MemoryWriter
-  tar := TarWriter writer
+  tar := Writer writer
 
   mtime := Time.epoch + (Duration --s=1234567890)
 
@@ -42,7 +42,7 @@ test-properties:
       --uid=1000
       --gid=1000
       --mtime=mtime
-      --type=TarWriter.TYPE-REGULAR-FILE
+      --type=TYPE-REGULAR-FILE
       --user-name="user"
       --group-name="group"
       --device-major=1
@@ -77,7 +77,7 @@ test-properties:
   expect-equals 1000 (parse-octal.call 116 8)
   expect-equals 7 (parse-octal.call 124 12) // "content".size = 7
   expect-equals 1234567890 (parse-octal.call 136 12)
-  expect-equals TarWriter.TYPE-REGULAR-FILE header[156]
+  expect-equals TYPE-REGULAR-FILE header[156]
   expect-equals "ustar  " (parse-string.call 257 8)
   expect-equals "user" (parse-string.call 265 32)
   expect-equals "group" (parse-string.call 297 32)

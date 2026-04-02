@@ -8,7 +8,7 @@ main:
 test-properties-verification:
   // We use a generator that writes a tar file to the provided writer.
   entries := list-with-tar-bin: |writer|
-    tar := TarWriter writer
+    tar := Writer writer
 
     // File 1: RW-R--R-- (644).
     tar.add "test-props.txt" "content"
