@@ -3,7 +3,7 @@
 // be found in the tests/TESTS_LICENSE file.
 
 import expect show *
-import tar show *
+import tar show Writer
 import io
 
 import .utils

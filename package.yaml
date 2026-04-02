@@ -2,3 +2,7 @@ name: tar
 description: Toit package to manipulate tar files.
 environment:
   sdk: ^v2.0.0-alpha.190
+dependencies:
+  host:
+    url: github.com/toitlang/pkg-host
+    version: ^1.17.0
