@@ -106,20 +106,20 @@ class TarWriter:
     permissions-in-octal/string := permissions.to-string --radix=8
     permissions-in-octal = permissions-in-octal.pad --left 7 '0'
 
-    uid-in-octal/string := uid.stringify 8
+    uid-in-octal/string := uid.to-string --radix=8
     uid-in-octal = uid-in-octal.pad --left 7 '0'
 
-    gid-in-octal/string := gid.stringify 8
+    gid-in-octal/string := gid.to-string --radix=8
     gid-in-octal = gid-in-octal.pad --left 7 '0'
 
     mtime-val := mtime ? (mtime.ms-since-epoch / 1000) : 0
-    mtime-in-octal/string := mtime-val.stringify 8
+    mtime-in-octal/string := mtime-val.to-string --radix=8
     mtime-in-octal = mtime-in-octal.pad --left 11 '0'
 
-    devmajor-in-octal/string := device-major.stringify 8
+    devmajor-in-octal/string := device-major.to-string --radix=8
     devmajor-in-octal = devmajor-in-octal.pad --left 7 '0'
 
-    devminor-in-octal/string := device-minor.stringify 8
+    devminor-in-octal/string := device-minor.to-string --radix=8
     devminor-in-octal = devminor-in-octal.pad --left 7 '0'
 
     header := ByteArray 512
