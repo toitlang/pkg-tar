@@ -7,6 +7,7 @@ import tar show *
 import host.file
 import host.directory
 import io
+import system
 
 main:
   test-create-extract-directory
@@ -132,6 +133,9 @@ test-extract-skips-path-traversal:
     directory.rmdir --recursive tmp
 
 test-roundtrip-preserves-permissions:
+  // On Windows, file.stat returns Windows file attributes, not Unix permissions.
+  if system.platform == system.PLATFORM-WINDOWS: return
+
   tmp := directory.mkdtemp "/tmp/tar-test-"
   try:
     source := "$tmp/source"
