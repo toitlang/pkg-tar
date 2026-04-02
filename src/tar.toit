@@ -51,9 +51,9 @@ class TarWriter:
       file-name = file-name.copy 0 100
 
     file-size := content.byte-size
-    file-size-in-octal := file-size.stringify 8
+    file-size-in-octal := file-size.to-string --radix=8
 
-    permissions-in-octal/string := permissions.stringify 8
+    permissions-in-octal/string := permissions.to-string --radix=8
     permissions-in-octal = permissions-in-octal.pad --left 7 '0'
 
     header := ByteArray 512
@@ -69,7 +69,7 @@ class TarWriter:
     checksum := 0
     for i := 0; i < 512; i++:
       checksum += header[i]
-    checksum-in-octal := checksum.stringify 8
+    checksum-in-octal := checksum.to-string --radix=8
     // Quoting Wikipedia: [The checksum] is stored as a six digit octal number with
     //   leading zeros followed by a NUL and then a space.
     checksum-pos := 148
