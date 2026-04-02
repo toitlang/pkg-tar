@@ -9,5 +9,5 @@ all: test
 test:
 	@toit pkg install --project-root tests;
 	@for f in tests/*-test.toit; do \
-		toit $$f; \
+		toit $$f || exit 1; \
 	done
