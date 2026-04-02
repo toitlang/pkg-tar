@@ -167,3 +167,140 @@ class TarWriter:
   static limit-string_ str/string limit/int -> string:
     if str.size <= limit: return str
     return str[..limit]
+
+/**
+A header entry in a tar archive.
+*/
+class TarHeader:
+  /** The name of the file. */
+  name/string
+  /** The file permissions. */
+  permissions/int
+  /** The user ID. */
+  uid/int
+  /** The group ID. */
+  gid/int
+  /** The size of the file content in bytes. */
+  size/int
+  /** The modification time. */
+  mtime/Time
+  /** The type of the entry. See $TarWriter.TYPE-REGULAR-FILE and friends. */
+  type/int
+  /** The user name. */
+  user-name/string
+  /** The group name. */
+  group-name/string
+  /** The device major number. */
+  device-major/int
+  /** The device minor number. */
+  device-minor/int
+
+  constructor
+      --.name
+      --.permissions
+      --.uid
+      --.gid
+      --.size
+      --.mtime
+      --.type
+      --.user-name
+      --.group-name
+      --.device-major
+      --.device-minor:
+
+/**
+A tar reader.
+
+Reads entries from a tar archive provided as an $io.Reader.
+*/
+class TarReader:
+  reader_/io.Reader
+
+  /**
+  Creates a new tar reader that reads from the given $reader.
+  */
+  constructor reader/io.Reader:
+    reader_ = reader
+
+  /**
+  Iterates over all entries in the tar archive.
+
+  Calls the given $block with a $TarHeader and a $ByteArray for each entry.
+  LongLink entries are handled transparently: the block is only called for
+    actual file entries with their full (long) name.
+  */
+  do [block]:
+    long-name/string? := null
+    while true:
+      if not reader_.try-ensure-buffered 512: return
+      header-bytes := reader_.read-bytes 512
+
+      // Two consecutive zero blocks signal end of archive.
+      if is-zero-block_ header-bytes: return
+
+      name := long-name or (parse-string_ header-bytes 0 100)
+      long-name = null
+
+      file-size := parse-octal_ header-bytes 124 12
+      permissions := parse-octal_ header-bytes 100 8
+      uid := parse-octal_ header-bytes 108 8
+      gid := parse-octal_ header-bytes 116 8
+      mtime-s := parse-octal_ header-bytes 136 12
+      type := header-bytes[156]
+      user-name := parse-string_ header-bytes 265 32
+      group-name := parse-string_ header-bytes 297 32
+      device-major := parse-octal_ header-bytes 329 8
+      device-minor := parse-octal_ header-bytes 337 8
+
+      // Read content (padded to 512-byte boundary).
+      content := ByteArray 0
+      if file-size > 0:
+        reader_.ensure-buffered file-size
+        content = reader_.read-bytes file-size
+        padding := (512 - (file-size % 512)) % 512
+        if padding > 0: reader_.skip padding
+
+      if type == TarWriter.TYPE-LONG-LINK_:
+        // LongLink: content is the real filename (may have trailing null).
+        long-name-bytes := content
+        // Strip trailing null bytes.
+        end := long-name-bytes.size
+        while end > 0 and long-name-bytes[end - 1] == 0: end--
+        long-name = long-name-bytes[..end].to-string
+        continue
+
+      mtime := Time.epoch + (Duration --s=mtime-s)
+      tar-header := TarHeader
+          --name=name
+          --permissions=permissions
+          --uid=uid
+          --gid=gid
+          --size=file-size
+          --mtime=mtime
+          --type=type
+          --user-name=user-name
+          --group-name=group-name
+          --device-major=device-major
+          --device-minor=device-minor
+      block.call tar-header content
+
+  static is-zero-block_ bytes/ByteArray -> bool:
+    bytes.do: if it != 0: return false
+    return true
+
+  static parse-octal_ bytes/ByteArray offset/int length/int -> int:
+    end := offset + length
+    // Find the end of the octal string (null or space terminated).
+    while end > offset and (bytes[end - 1] == 0 or bytes[end - 1] == ' '): end--
+    if end == offset: return 0
+    str := bytes[offset..end].to-string
+    return int.parse str --radix=8
+
+  static parse-string_ bytes/ByteArray offset/int length/int -> string:
+    end := offset + length
+    // Find null terminator.
+    for i := offset; i < end; i++:
+      if bytes[i] == 0:
+        end = i
+        break
+    return bytes[offset..end].to-string
