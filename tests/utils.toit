@@ -2,11 +2,19 @@
 // Use of this source code is governed by a Zero-Clause BSD license that can
 // be found in the tests/TESTS_LICENSE file.
 
+import host.directory
+import host.file
+import host.os
+import host.pipe
 import monitor
 import system
-import host.os
-import host.file
-import host.pipe
+
+with-tmp-directory [block]:
+  tmp := directory.mkdtemp "/tmp/tar-test-"
+  try:
+    block.call tmp
+  finally:
+    directory.rmdir --recursive --force tmp
 
 tool-path_ tool/string -> string:
   if system.platform != system.PLATFORM-WINDOWS: return tool
