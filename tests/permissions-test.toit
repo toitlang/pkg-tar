@@ -25,7 +25,7 @@ TESTS := {
 
 main:
   listing := list-with-tar-bin: | writer/io.Writer |
-    tar := Tar writer
+    tar := TarWriter writer
     TESTS.do: | output/string permissions/int |
       tar.add "file-$output" "some-content" --permissions=permissions
     tar.close
