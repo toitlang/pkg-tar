@@ -48,6 +48,7 @@ run-tar command flags [generator]:
     latch.set result
 
   generator.call to.out
+  to.close
 
   return latch.get
 
