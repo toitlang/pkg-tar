@@ -3,6 +3,8 @@
 // found in the package's LICENSE file.
 
 import io
+import host.file
+import host.directory as host-directory
 
 TYPE-REGULAR-FILE     ::= '0'
 TYPE-LINK             ::= '1'
@@ -97,7 +99,7 @@ class Header:
   If $long-name is provided, it overrides the name field in the header
     (used for the GNU LongLink extension).
   */
-  constructor.from-bytes header-bytes/ByteArray --long-name/string?=null:
+  constructor.from-bytes_ header-bytes/ByteArray --long-name/string?=null:
     bytes_ = header-bytes
     long-name_ = long-name
 
@@ -320,7 +322,7 @@ class Reader:
       // Two consecutive zero blocks signal end of archive.
       if Header.is-zero-block_ header-bytes: return
 
-      header := Header.from-bytes header-bytes --long-name=long-name
+      header := Header.from-bytes_ header-bytes --long-name=long-name
       long-name = null
 
       // Read content (padded to 512-byte boundary).
@@ -339,3 +341,81 @@ class Reader:
         continue
 
       block.call header content
+
+/**
+Creates a tar archive from a file or directory on disk.
+
+If $source is a directory, recursively adds all files and subdirectories
+  with paths relative to $source.
+If $source is a file, adds it with just its filename.
+
+The archive is written to $writer. The writer is not closed.
+*/
+create --writer/io.Writer --source/string -> none:
+  stat := file.stat source
+  if not stat: throw "FILE_NOT_FOUND: \"$source\""
+  tar := Writer writer
+  if stat[file.ST-TYPE] == file.DIRECTORY:
+    create-add-recursive_ tar source ""
+  else:
+    last-sep := source.index-of --last "/"
+    name := last-sep >= 0 ? source[last-sep + 1..] : source
+    content := file.read-contents source
+    tar.add name content
+        --permissions=stat[file.ST-MODE]
+        --mtime=stat[file.ST-MTIME]
+  tar.close
+
+create-add-recursive_ tar/Writer root/string relative/string -> none:
+  path := relative == "" ? root : "$root/$relative"
+  stat := file.stat path
+  if not stat: throw "FILE_NOT_FOUND: \"$path\""
+  type := stat[file.ST-TYPE]
+  permissions := stat[file.ST-MODE]
+  mtime/Time := stat[file.ST-MTIME]
+  if type == file.DIRECTORY:
+    if relative != "":
+      tar.add "$relative/" #[]
+          --type=TYPE-DIRECTORY
+          --permissions=permissions
+          --mtime=mtime
+    stream := host-directory.DirectoryStream path
+    try:
+      while entry := stream.next:
+        child := relative == "" ? entry : "$relative/$entry"
+        create-add-recursive_ tar root child
+    finally:
+      stream.close
+  else:
+    content := file.read-contents path
+    tar.add relative content
+        --permissions=permissions
+        --mtime=mtime
+
+/**
+Extracts a tar archive to a directory on disk.
+
+Reads all entries from $reader and writes them under $directory.
+Creates parent directories as needed.
+
+Entries with absolute paths or ".." path components are skipped for security.
+
+The reader is not closed.
+*/
+extract --reader/io.Reader --directory/string -> none:
+  tar-reader := Reader reader
+  tar-reader.do: | header/Header content/ByteArray |
+    name := header.name
+    // Security: skip entries with absolute paths or path traversal.
+    if name.starts-with "/": continue.do
+    if name.contains "..": continue.do
+    target := "$directory/$name"
+    if header.type == TYPE-DIRECTORY:
+      host-directory.mkdir --recursive target header.permissions
+    else:
+      last-sep := target.index-of --last "/"
+      if last-sep > 0:
+        parent := target[..last-sep]
+        if not file.is-directory parent:
+          host-directory.mkdir --recursive parent
+      file.write-contents content --path=target --permissions=header.permissions
