@@ -74,6 +74,8 @@ test-properties:
   expect-equals 1000 (parse-octal.call 108 8)
   expect-equals 1000 (parse-octal.call 116 8)
   expect-equals 7 (parse-octal.call 124 12) // "content".size = 7
+  // The last byte of the size field must be a NUL terminator.
+  expect-equals 0 header[124 + 12 - 1]
   expect-equals 1234567890 (parse-octal.call 136 12)
   expect-equals tar.TYPE-REGULAR-FILE header[156]
   expect-equals "ustar  " (parse-string.call 257 8)

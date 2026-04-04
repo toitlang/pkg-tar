@@ -14,6 +14,7 @@ main:
   test-multiple-files
   test-long-name
   test-properties
+  test-size-nul-terminator
 
 /**
 Helper that writes a tar archive to a buffer and returns the bytes.
@@ -139,5 +140,23 @@ test-properties:
     expect-equals "group" header.group-name
     expect-equals 1 header.device-major
     expect-equals 2 header.device-minor
+    expect-equals "content" content.to-string
+  expect-equals 1 count
+
+test-size-nul-terminator:
+  bytes := write-tar: |tw/tar.Writer|
+    tw.add "file.txt" "content"
+
+  // Verify the size field's last byte is a NUL terminator.
+  // The size field is at offset 124 with length 12.
+  expect-equals 0 bytes[124 + 12 - 1]
+
+  // Roundtrip: the Reader must parse the size correctly.
+  reader := tar.Reader (io.Reader bytes)
+  count := 0
+  reader.do: |header/tar.Header content/ByteArray|
+    count++
+    expect-equals "file.txt" header.name
+    expect-equals 7 header.size
     expect-equals "content" content.to-string
   expect-equals 1 count
