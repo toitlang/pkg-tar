@@ -65,11 +65,11 @@ Returns the concatenated contents of all extracted files.
 */
 extract [generator]:
   return run-tar
-      "x"   // extract
-      "-PO" // P for absolute paths, to stdout
+      "x"   // extract.
+      "-PO" // P for absolute paths, to stdout.
       generator
 
-split-fields line/string -> List/*<string>*/:
+split-fields_ line/string -> List/*<string>*/:
   result := []
   start-pos := 0
   last-was-space := true
@@ -85,22 +85,76 @@ split-fields line/string -> List/*<string>*/:
 class TarEntry:
   name/string
   size/int
-  permissions/string
+  permissions/int
+  owner/string
+  group/string
+  mtime/string
 
-  constructor --.name --.size --.permissions:
+  constructor --.name --.size --.permissions --.owner --.group --.mtime:
+
+parse-permissions_ str/string -> int:
+  res := 0
+  // Expected format: -rwxrwxrwx (10 chars).
+  if str.size < 10: return 0
+
+  // User.
+  if str[1] == 'r': res |= 0b100_000_000
+  if str[2] == 'w': res |= 0b010_000_000
+  if str[3] == 'x': res |= 0b001_000_000
+
+  // Group.
+  if str[4] == 'r': res |= 0b000_100_000
+  if str[5] == 'w': res |= 0b000_010_000
+  if str[6] == 'x': res |= 0b000_001_000
+
+  // Other.
+  if str[7] == 'r': res |= 0b000_000_100
+  if str[8] == 'w': res |= 0b000_000_010
+  if str[9] == 'x': res |= 0b000_000_001
+
+  return res
 
 list-with-tar-bin [generator] -> List/*<TarEntry>*/:
   listing := inspect-with-tar-bin generator
   lines := (listing.trim --right "\n").split "\n"
   return lines.map: |line|
     // A line looks something like:
-    // Linux: -rw-rw-r-- 0/0               5 1970-01-01 01:00 /foo
-    // Mac:   -rw-rw-r--  0 0      0           5 Jan  1  1970 /foo
-    permissions-index := 0
-    name-index := system.platform == system.PLATFORM-MACOS ? 8 : 5
-    size-index := system.platform == system.PLATFORM-MACOS ? 4 : 2
-    components := split-fields line
+    // Linux: -rw-rw-r-- 1000/1000          5 1970-01-01 01:00 /foo
+    // Mac:   -rw-rw-r--  0 1000 1000      5 Jan  1  1970 /foo
+    // Mac (recent): -rw-rw-r--  0 1000 1000      5 Jan  1 01:00 /foo
+    components := split-fields_ line
+
+    name-index := 0
+    size-index := 0
+    mtime-string := ""
+    user := ""
+    group := ""
+
+    permissions := parse-permissions_ components[0]
+
+    if system.platform == system.PLATFORM-MACOS:
+      name-index = 8
+      size-index = 4
+      user = components[2]
+      group = components[3]
+      // Date is at 5, 6, 7 (e.g., "Jan", "1", "1970" or "Jan", "1", "01:00").
+      mtime-string = "$components[5] $components[6] $components[7]"
+    else:
+      name-index = 5
+      size-index = 2
+      parts := components[1].split "/"
+      user = parts[0]
+      group = parts[1]
+      // Date is at 3, 4 (e.g., "1970-01-01", "01:00")
+      mtime-string = "$components[3] $components[4]"
+
     file-name := components[name-index]
     size := int.parse components[size-index]
-    permissions := components[permissions-index]
-    TarEntry --name=file-name --size=size --permissions=permissions
+
+    TarEntry
+        --name=file-name
+        --size=size
+        --permissions=permissions
+        --owner=user
+        --group=group
+        --mtime=mtime-string
