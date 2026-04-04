@@ -3,17 +3,17 @@
 // be found in the tests/TESTS_LICENSE file.
 
 import expect show *
-import tar show Writer
+import tar
 import io
 
 import .utils
 
 test-tar contents:
   create-tar := : |writer/io.CloseableWriter|
-    tar := Writer writer
+    tw := tar.Writer writer
     contents.do: |file-name file-contents|
-      tar.add file-name file-contents
-    tar.close
+      tw.add file-name file-contents
+    tw.close
 
   listing := list-with-tar-bin create-tar
   expect-equals contents.size listing.size

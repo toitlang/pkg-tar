@@ -3,7 +3,7 @@
 // be found in the tests/TESTS_LICENSE file.
 
 import expect show *
-import tar show *
+import tar
 import io
 
 main:
@@ -20,42 +20,42 @@ Helper that writes a tar archive to a buffer and returns the bytes.
 */
 write-tar [block] -> ByteArray:
   buffer := io.Buffer
-  tar := Writer buffer
-  block.call tar
-  tar.close
+  tw := tar.Writer buffer
+  block.call tw
+  tw.close
   return buffer.bytes
 
 test-basic-roundtrip:
-  bytes := write-tar: |tar/Writer|
-    tar.add "hello.txt" "Hello, World!"
+  bytes := write-tar: |tw/tar.Writer|
+    tw.add "hello.txt" "Hello, World!"
 
-  reader := Reader (io.Reader bytes)
+  reader := tar.Reader (io.Reader bytes)
   count := 0
-  reader.do: |header/Header content/ByteArray|
+  reader.do: |header/tar.Header content/ByteArray|
     count++
     expect-equals "hello.txt" header.name
     expect-equals 13 header.size
     expect-equals "Hello, World!" content.to-string
-    expect-equals TYPE-REGULAR-FILE header.type
+    expect-equals tar.TYPE-REGULAR-FILE header.type
   expect-equals 1 count
 
 test-empty-archive:
-  bytes := write-tar: |tar/Writer|
+  bytes := write-tar: |tw/tar.Writer|
     null  // Add nothing.
 
-  reader := Reader (io.Reader bytes)
+  reader := tar.Reader (io.Reader bytes)
   count := 0
-  reader.do: |header/Header content/ByteArray|
+  reader.do: |header/tar.Header content/ByteArray|
     count++
   expect-equals 0 count
 
 test-empty-file:
-  bytes := write-tar: |tar/Writer|
-    tar.add "empty.txt" ""
+  bytes := write-tar: |tw/tar.Writer|
+    tw.add "empty.txt" ""
 
-  reader := Reader (io.Reader bytes)
+  reader := tar.Reader (io.Reader bytes)
   count := 0
-  reader.do: |header/Header content/ByteArray|
+  reader.do: |header/tar.Header content/ByteArray|
     count++
     expect-equals "empty.txt" header.name
     expect-equals 0 header.size
@@ -64,12 +64,12 @@ test-empty-file:
 
 test-large-file:
   large-content := ByteArray 10000: 'A' + it % 50
-  bytes := write-tar: |tar/Writer|
-    tar.add "large.bin" large-content
+  bytes := write-tar: |tw/tar.Writer|
+    tw.add "large.bin" large-content
 
-  reader := Reader (io.Reader bytes)
+  reader := tar.Reader (io.Reader bytes)
   count := 0
-  reader.do: |header/Header content/ByteArray|
+  reader.do: |header/tar.Header content/ByteArray|
     count++
     expect-equals "large.bin" header.name
     expect-equals 10000 header.size
@@ -84,13 +84,13 @@ test-multiple-files:
     "fourth.txt": "CCCCCCCC",
   }
 
-  bytes := write-tar: |tar/Writer|
+  bytes := write-tar: |tw/tar.Writer|
     files.do: |name content|
-      tar.add name content
+      tw.add name content
 
-  reader := Reader (io.Reader bytes)
+  reader := tar.Reader (io.Reader bytes)
   found := {:}
-  reader.do: |header/Header content/ByteArray|
+  reader.do: |header/tar.Header content/ByteArray|
     found[header.name] = content.to-string
 
   expect-equals files.size found.size
@@ -99,12 +99,12 @@ test-multiple-files:
 
 test-long-name:
   long-name := "a" * 200
-  bytes := write-tar: |tar/Writer|
-    tar.add long-name "content"
+  bytes := write-tar: |tw/tar.Writer|
+    tw.add long-name "content"
 
-  reader := Reader (io.Reader bytes)
+  reader := tar.Reader (io.Reader bytes)
   count := 0
-  reader.do: |header/Header content/ByteArray|
+  reader.do: |header/tar.Header content/ByteArray|
     count++
     expect-equals long-name header.name
     expect-equals "content" content.to-string
@@ -112,21 +112,21 @@ test-long-name:
 
 test-properties:
   mtime := Time.epoch + (Duration --s=1234567890)
-  bytes := write-tar: |tar/Writer|
-    tar.add "test.txt" "content"
+  bytes := write-tar: |tw/tar.Writer|
+    tw.add "test.txt" "content"
         --permissions=0b110_100_100
         --uid=1000
         --gid=1000
         --mtime=mtime
-        --type=TYPE-REGULAR-FILE
+        --type=tar.TYPE-REGULAR-FILE
         --user-name="user"
         --group-name="group"
         --device-major=1
         --device-minor=2
 
-  reader := Reader (io.Reader bytes)
+  reader := tar.Reader (io.Reader bytes)
   count := 0
-  reader.do: |header/Header content/ByteArray|
+  reader.do: |header/tar.Header content/ByteArray|
     count++
     expect-equals "test.txt" header.name
     expect-equals 0b110_100_100 header.permissions
@@ -134,7 +134,7 @@ test-properties:
     expect-equals 1000 header.gid
     expect-equals 7 header.size
     expect-equals 1234567890 (header.mtime.ms-since-epoch / 1000)
-    expect-equals TYPE-REGULAR-FILE header.type
+    expect-equals tar.TYPE-REGULAR-FILE header.type
     expect-equals "user" header.user-name
     expect-equals "group" header.group-name
     expect-equals 1 header.device-major

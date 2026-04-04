@@ -3,7 +3,7 @@
 // be found in the tests/TESTS_LICENSE file.
 
 import expect show *
-import tar show *
+import tar
 import io
 
 import .utils
@@ -11,9 +11,9 @@ import .utils
 LONG-NAME ::= "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"
 main:
   listing := list-with-tar-bin: | writer/io.Writer |
-    tar := Writer writer
-    tar.add LONG-NAME "some-content"
-    tar.close
+    tw := tar.Writer writer
+    tw.add LONG-NAME "some-content"
+    tw.close
 
   expect-equals 1 listing.size
   expect-equals LONG-NAME listing.first.name

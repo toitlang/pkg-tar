@@ -1,5 +1,5 @@
 import expect show *
-import tar show *
+import tar
 import .utils
 
 main:
@@ -8,10 +8,10 @@ main:
 test-properties-verification:
   // We use a generator that writes a tar file to the provided writer.
   entries := list-with-tar-bin: |writer|
-    tar := Writer writer
+    tw := tar.Writer writer
 
     // File 1: RW-R--R-- (644).
-    tar.add "test-props.txt" "content"
+    tw.add "test-props.txt" "content"
         --permissions=0b110_100_100  // 644.
         --uid=1234
         --gid=5678
@@ -20,12 +20,12 @@ test-properties-verification:
         --mtime=(Time.epoch + (Duration --s=1000000000))  // 2001-09-09.
 
     // File 2: OWXRWXRWX (777) but with some mask usually, let's try 755.
-    tar.add "executable.sh" "echo hello"
+    tw.add "executable.sh" "echo hello"
         --permissions=0b111_101_101  // 755.
         --uid=1000
         --gid=1000
 
-    tar.close
+    tw.close
 
   expect-equals 2 entries.size
 

@@ -3,9 +3,7 @@
 // be found in the tests/TESTS_LICENSE file.
 
 import expect show *
-import tar show *
-import expect show *
-import tar show *
+import tar
 import io
 
 class MemoryWriter extends io.Writer:
@@ -33,22 +31,22 @@ main:
 
 test-properties:
   writer := MemoryWriter
-  tar := Writer writer
+  tw := tar.Writer writer
 
   mtime := Time.epoch + (Duration --s=1234567890)
 
-  tar.add "test.txt" "content"
+  tw.add "test.txt" "content"
       --permissions=420 // 0644
       --uid=1000
       --gid=1000
       --mtime=mtime
-      --type=TYPE-REGULAR-FILE
+      --type=tar.TYPE-REGULAR-FILE
       --user-name="user"
       --group-name="group"
       --device-major=1
       --device-minor=2
 
-  tar.close
+  tw.close
 
   bytes := writer.bytes
   // Header is first 512 bytes.
@@ -77,7 +75,7 @@ test-properties:
   expect-equals 1000 (parse-octal.call 116 8)
   expect-equals 7 (parse-octal.call 124 12) // "content".size = 7
   expect-equals 1234567890 (parse-octal.call 136 12)
-  expect-equals TYPE-REGULAR-FILE header[156]
+  expect-equals tar.TYPE-REGULAR-FILE header[156]
   expect-equals "ustar  " (parse-string.call 257 8)
   expect-equals "user" (parse-string.call 265 32)
   expect-equals "group" (parse-string.call 297 32)

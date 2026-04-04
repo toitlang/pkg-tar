@@ -3,7 +3,7 @@
 // be found in the tests/TESTS_LICENSE file.
 
 import expect show *
-import tar show *
+import tar
 import host.file
 import host.directory
 import io
@@ -27,11 +27,11 @@ test-create-extract-directory:
     file.write-contents "world" --path="$source/b.txt"
 
     buffer := io.Buffer
-    create --writer=buffer --source=source
+    tar.create --writer=buffer --source=source
 
     target := "$tmp/target"
     directory.mkdir target
-    extract --reader=(io.Reader buffer.bytes) --directory=target
+    tar.extract --reader=(io.Reader buffer.bytes) --directory=target
 
     expect-equals "hello" (file.read-contents "$target/a.txt").to-string
     expect-equals "world" (file.read-contents "$target/b.txt").to-string
@@ -44,11 +44,11 @@ test-create-extract-single-file:
     file.write-contents "content" --path="$tmp/single.txt"
 
     buffer := io.Buffer
-    create --writer=buffer --source="$tmp/single.txt"
+    tar.create --writer=buffer --source="$tmp/single.txt"
 
     target := "$tmp/target"
     directory.mkdir target
-    extract --reader=(io.Reader buffer.bytes) --directory=target
+    tar.extract --reader=(io.Reader buffer.bytes) --directory=target
 
     expect-equals "content" (file.read-contents "$target/single.txt").to-string
   finally:
@@ -66,11 +66,11 @@ test-create-extract-nested:
     file.write-contents "bottom" --path="$source/sub/deep/bottom.txt"
 
     buffer := io.Buffer
-    create --writer=buffer --source=source
+    tar.create --writer=buffer --source=source
 
     target := "$tmp/target"
     directory.mkdir target
-    extract --reader=(io.Reader buffer.bytes) --directory=target
+    tar.extract --reader=(io.Reader buffer.bytes) --directory=target
 
     expect-equals "top" (file.read-contents "$target/top.txt").to-string
     expect-equals "mid" (file.read-contents "$target/sub/mid.txt").to-string
@@ -89,11 +89,11 @@ test-create-extract-empty-directory:
     file.write-contents "data" --path="$source/file.txt"
 
     buffer := io.Buffer
-    create --writer=buffer --source=source
+    tar.create --writer=buffer --source=source
 
     target := "$tmp/target"
     directory.mkdir target
-    extract --reader=(io.Reader buffer.bytes) --directory=target
+    tar.extract --reader=(io.Reader buffer.bytes) --directory=target
 
     expect (file.is-directory "$target/empty")
     expect-equals "data" (file.read-contents "$target/file.txt").to-string
@@ -102,14 +102,14 @@ test-create-extract-empty-directory:
 
 test-extract-skips-absolute-paths:
   buffer := io.Buffer
-  tar := Writer buffer
-  tar.add "/etc/passwd" "malicious"
-  tar.add "safe.txt" "safe"
-  tar.close
+  tw := tar.Writer buffer
+  tw.add "/etc/passwd" "malicious"
+  tw.add "safe.txt" "safe"
+  tw.close
 
   tmp := directory.mkdtemp "/tmp/tar-test-"
   try:
-    extract --reader=(io.Reader buffer.bytes) --directory=tmp
+    tar.extract --reader=(io.Reader buffer.bytes) --directory=tmp
 
     expect (file.is-file "$tmp/safe.txt")
     expect-not (file.is-file "$tmp/etc/passwd")
@@ -118,14 +118,14 @@ test-extract-skips-absolute-paths:
 
 test-extract-skips-path-traversal:
   buffer := io.Buffer
-  tar := Writer buffer
-  tar.add "../escape.txt" "malicious"
-  tar.add "safe.txt" "safe"
-  tar.close
+  tw := tar.Writer buffer
+  tw.add "../escape.txt" "malicious"
+  tw.add "safe.txt" "safe"
+  tw.close
 
   tmp := directory.mkdtemp "/tmp/tar-test-"
   try:
-    extract --reader=(io.Reader buffer.bytes) --directory=tmp
+    tar.extract --reader=(io.Reader buffer.bytes) --directory=tmp
 
     expect (file.is-file "$tmp/safe.txt")
     expect-not (file.is-file "$tmp/../escape.txt")
@@ -144,11 +144,11 @@ test-roundtrip-preserves-permissions:
     file.chmod "$source/run.sh" 0b111_101_101  // 0755
 
     buffer := io.Buffer
-    create --writer=buffer --source=source
+    tar.create --writer=buffer --source=source
 
     target := "$tmp/target"
     directory.mkdir target
-    extract --reader=(io.Reader buffer.bytes) --directory=target
+    tar.extract --reader=(io.Reader buffer.bytes) --directory=target
 
     stat := file.stat "$target/run.sh"
     expect-equals 0b111_101_101 stat[file.ST-MODE]

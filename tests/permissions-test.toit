@@ -3,7 +3,7 @@
 // be found in the tests/TESTS_LICENSE file.
 
 import expect show *
-import tar show *
+import tar
 import io
 
 import .utils
@@ -25,10 +25,10 @@ TESTS := {
 
 main:
   listing := list-with-tar-bin: | writer/io.Writer |
-    tar := Writer writer
+    tw := tar.Writer writer
     TESTS.do: | output/string permissions/int |
-      tar.add "file-$output" "some-content" --permissions=permissions
-    tar.close
+      tw.add "file-$output" "some-content" --permissions=permissions
+    tw.close
 
   expect-equals TESTS.size listing.size
   listing.do: | entry/TarEntry |
