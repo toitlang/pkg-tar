@@ -7,7 +7,7 @@ import tar
 
 main:
   stream := file.Stream.for-write "/tmp/toit.tar"
-  tar := tar.TarWriter stream.out
+  tar := tar.Writer stream.out
   tar.add "test2.txt" "456\n"
   tar.add "some-bin.exe" #[0x12, 0x34] --permissions=0b111_000_000
   tar.close

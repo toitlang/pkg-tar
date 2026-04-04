@@ -10,7 +10,7 @@ import .utils
 
 test-tar contents:
   create-tar := : |writer/io.CloseableWriter|
-    tar := TarWriter writer
+    tar := Writer writer
     contents.do: |file-name file-contents|
       tar.add file-name file-contents
     tar.close
