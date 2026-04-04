@@ -80,7 +80,7 @@ class Header:
     write-octal_ bytes_ PERMISSIONS-OFFSET_ (PERMISSIONS-LENGTH_ - 1) permissions
     write-octal_ bytes_ UID-OFFSET_ (UID-LENGTH_ - 1) uid
     write-octal_ bytes_ GID-OFFSET_ (GID-LENGTH_ - 1) gid
-    write-octal_ bytes_ SIZE-OFFSET_ SIZE-LENGTH_ size
+    write-octal_ bytes_ SIZE-OFFSET_ (SIZE-LENGTH_ - 1) size
     mtime-val := mtime.ms-since-epoch / 1000
     write-octal_ bytes_ MTIME-OFFSET_ (MTIME-LENGTH_ - 1) mtime-val
     // The checksum is computed using spaces. Later it is replaced with the actual values.
